@@ -55,6 +55,51 @@ class MenuTests(unittest.TestCase):
             total = conexao.execute("SELECT COUNT(*) FROM producao").fetchone()[0]
         self.assertEqual(total, 0)
 
+    def test_id_excluido_nao_e_reutilizado_e_edicao_preserva_identidade(self):
+        saida = self.executar_menu([
+            "1", "Montagem", "10", "1", "1", "0,10",
+            "4", "1", "Montagem atualizada", "12", "2", "0,20",
+            "5", "1", "s",
+            "1", "Pintura", "5", "0", "0", "0,30",
+            "2",
+            "0",
+        ])
+
+        self.assertIn("Registro atualizado com sucesso.", saida)
+        self.assertIn("ID: 2 | Setor: Pintura", saida)
+        with sqlite3.connect(main.DB_PATH) as conexao:
+            registro = conexao.execute(
+                "SELECT id, setor FROM producao"
+            ).fetchone()
+        self.assertEqual(registro, (2, "Pintura"))
+
+    def test_migra_esquema_atual_para_ids_nao_reutilizaveis(self):
+        with sqlite3.connect(main.DB_PATH) as conexao:
+            conexao.execute(
+                """CREATE TABLE producao (
+                    id INTEGER PRIMARY KEY,
+                    setor TEXT NOT NULL,
+                    pecas_produzidas INTEGER NOT NULL DEFAULT 0,
+                    pecas_rejeitadas INTEGER NOT NULL DEFAULT 0,
+                    custo_unitario_centavos INTEGER NOT NULL
+                )"""
+            )
+            conexao.execute(
+                """INSERT INTO producao VALUES
+                   (7, 'Usinagem', 20, 2, 1875)"""
+            )
+
+        self.executar_menu([
+            "1", "Montagem", "10", "1", "1", "0,10",
+            "0",
+        ])
+
+        with sqlite3.connect(main.DB_PATH) as conexao:
+            registros = conexao.execute(
+                "SELECT id, setor FROM producao ORDER BY id"
+            ).fetchall()
+        self.assertEqual(registros, [(7, "Usinagem"), (8, "Montagem")])
+
     def test_migra_registros_existentes_preservando_valores(self):
         with sqlite3.connect(main.DB_PATH) as conexao:
             conexao.execute(

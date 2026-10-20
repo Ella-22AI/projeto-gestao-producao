@@ -8,6 +8,9 @@ SCHEMA_PATH = Path(__file__).parent / "database" / "schema.sql"
 MIGRATION_PATH = (
     Path(__file__).parent / "database" / "migrations" / "001_custo_em_centavos.sql"
 )
+ID_MIGRATION_PATH = (
+    Path(__file__).parent / "database" / "migrations" / "002_ids_nao_reutilizaveis.sql"
+)
 
 
 def inicializar_banco(conexao):
@@ -26,6 +29,12 @@ def inicializar_banco(conexao):
         conexao.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
     elif "custo_unitario_centavos" not in colunas:
         raise RuntimeError("O esquema da tabela producao não é reconhecido.")
+
+    definicao = conexao.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'producao'"
+    ).fetchone()
+    if definicao and "AUTOINCREMENT" not in definicao[0].upper():
+        conexao.executescript(ID_MIGRATION_PATH.read_text(encoding="utf-8"))
 
 
 def ler_inteiro(mensagem, minimo=0):

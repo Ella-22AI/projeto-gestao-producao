@@ -3,7 +3,7 @@ BEGIN IMMEDIATE;
 ALTER TABLE producao RENAME TO producao_legada;
 
 CREATE TABLE producao (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     setor TEXT NOT NULL CHECK (length(trim(setor)) > 0),
     pecas_produzidas INTEGER NOT NULL DEFAULT 0 CHECK (pecas_produzidas >= 0),
     pecas_rejeitadas INTEGER NOT NULL DEFAULT 0
